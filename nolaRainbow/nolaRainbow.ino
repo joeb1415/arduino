@@ -27,6 +27,10 @@ uint32_t cyan = strip.Color(0, 255, 255);
 uint32_t magenta = strip.Color(255, 0, 255);
 uint32_t white = strip.Color(255, 255, 255);
 
+uint32_t saved_color;
+boolean skip_to_next = false;
+
+
 void setup() {
   /* Interrupt setup 
    * http://gammon.com.au/interrupts // interrupt code
@@ -44,37 +48,53 @@ void setup() {
 // Interrupt Service Routine (ISR)
 void switch_pressed()
 {
-  if (digitalRead (INTERRUPT_PIN) == LOW)
-    flash(7, 1);
+    skip_to_next = true;
+    flash(7);
 }
 
 void loop() {  
   rainbowCycle(RainbowColorCycleSpeed);
-  colorWipe(strip.Color(0, 255, 0), SingleColorCycleSpeed); // Green
+  colorWipe(green, SingleColorCycleSpeed);
+  
   rainbow(RainbowColorCycleSpeed);
-  colorWipe(strip.Color(0, 0, 255), SingleColorCycleSpeed); // Blue
+  colorWipe(blue, SingleColorCycleSpeed);
+  
   rainbowCycle(RainbowColorCycleSpeed*2);
-  colorWipe(strip.Color(255, 255, 0), SingleColorCycleSpeed); // yellow
+  colorWipe(yellow, SingleColorCycleSpeed);
+  
   rainbow(RainbowColorCycleSpeed); 
-  colorWipe(strip.Color(0, 255, 255), SingleColorCycleSpeed); // Cyan
-  colorWipe(strip.Color(255, 255, 255), SingleColorCycleSpeed); // White
+  colorWipe(cyan, SingleColorCycleSpeed);
+  
   rainbowCycle(RainbowColorCycleSpeed*2);
-  colorWipe(strip.Color(255, 0, 255), SingleColorCycleSpeed); // Pink
+  colorWipe(magenta, SingleColorCycleSpeed);
+  
   rainbow(RainbowColorCycleSpeed*2); 
-  colorWipe(strip.Color(255, 0, 0), SingleColorCycleSpeed); // Red
+  colorWipe(red, SingleColorCycleSpeed);
 }
 
-void flash(uint8_t speed, uint8_t cycles) {
-  uint16_t i,j,k;
-  for(k=0; k<cycles; k++) {
-    for(j=0; j<(256); j++) {
-      for(i=0; i<strip.numPixels(); i++) {
-        strip.setPixelColor(i, strip.Color(j*speed % 256, j*speed % 256, j*speed % 256));
-        //delay(0.1);
-      }
-      strip.show();
+void flash(uint8_t speed) {
+  uint16_t pixel, count, brightness;
+  
+  for(count=0; count<4; count++) 
+  {    
+    brightness = 255 * (count % 2);
+    for(pixel=0; pixel<strip.numPixels(); pixel++) 
+    {
+      strip.setPixelColor(pixel, strip.Color(brightness, brightness, brightness));
     }
+    strip.show();
+    delay(20);
   }
+}
+
+void solid_color(uint32_t color, uint8_t wait) 
+{
+  for(uint16_t i=0; i<strip.numPixels(); i++) 
+  {
+    strip.setPixelColor(i, color);
+  }
+  strip.show();
+  delay(wait);
 }
 
 // Fill the dots one after the other with a color
@@ -82,9 +102,16 @@ void colorWipe(uint32_t c, uint8_t wait)
 {
   for(uint16_t i=0; i<strip.numPixels(); i++) 
   {
-      strip.setPixelColor(i, c);
-      strip.show();
-      delay(wait);
+    // if we come back from flash, rainbow is ok because they are all set. 
+    // can't stay on color wipe due since there'd be lots of black lights.
+    if(skip_to_next){
+      skip_to_next = false;
+      break;
+    }
+  
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
   }
 }
 
